@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int         @id @default(autoincrement())
+  email     String      @unique
+  name      String
+  cpf       String      @unique
+  phone     String
+  password  String
+  Reviews   Review[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  Schedules Schedule[]
+}
+
+model Doctor {
+  id            Int         @id @default(autoincrement())
+  name          String
+  crm           String      @unique
+  phone         String
+  email         String      @unique
+  clinica       String
+  especialidade String
+  sobre         String
+  Reviews       Review[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  Schedules     Schedule[]
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  doctorId  Int
+  userId    Int
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  doctorId  Int
+  userId    Int?
+  day       String
+  hour      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  User      User?     @relation(fields: [userId], references: [id])
+}
+
+

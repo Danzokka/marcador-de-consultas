@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./consultas
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:5000
+      - SESSION_SECRET=hsZT/2nRem9OiSftCKhyAMWj0YzkRbF/WV0iYzerzks=
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend-consultas
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://consulta:consulta@postgres:5432/app?schema=public
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  postgres:
+    image: bitnami/postgresql:latest
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=consulta
+      - POSTGRES_PASSWORD=consulta
+      - POSTGRES_DB=mydb
+    volumes:
+      - mydb_pg_data:/bitnami/postgresql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U consulta -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  db-init:
+    image: curlimages/curl:latest
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: >
+      sh -c "
+        echo 'Esperando o backend estar pronto...' &&
+        sleep 5 &&
+        echo 'Enviando requisição de inicialização...' &&
+        curl -X POST http://backend:5000 -H 'Content-Type: application/json' &&
+        echo 'Inicialização completa!'
+      "
+    restart: on-failure
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mydb_pg_data:
